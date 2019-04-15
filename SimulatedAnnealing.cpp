@@ -94,8 +94,8 @@ int main(int argc, char *argv[])
                  cv::Point(best.getCity(i + 1).getX(), best.getCity(i + 1).getY()), 255);
     }
 
-    cv::imshow("initial_map", initial_map);
-    cv::waitKey(0);
+    cv::imshow("Initial_map", initial_map);
+    // cv::waitKey(0);
 
     std::cout << "Initial solution distance: " << best.getDistance() << std::endl;
     // std::cout << best.toString() << std::endl;
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
                      cv::Point(best.getCity(i + 1).getX(), best.getCity(i + 1).getY()), 255);
         }
 
-        cv::imshow("map", map);
+        cv::imshow("Processing", map);
         cv::waitKey(1);
     }
 
@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
                  cv::Point(best.getCity(i + 1).getX(), best.getCity(i + 1).getY()), 255);
     }
 
-    cv::imshow("map", map);
+    cv::imshow("Final map", map);
     cv::waitKey(0);
 
     return 0;
