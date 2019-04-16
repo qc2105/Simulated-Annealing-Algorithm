@@ -14,7 +14,6 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
-
 double acceptanceProbability(int energy, int newEnergy, double temperature)
 {
     if (newEnergy < energy)
@@ -102,11 +101,15 @@ int main(int argc, char *argv[])
 
     cv::Mat map = cv::Mat(cv::Size(256, 256), CV_8UC1, cv::Scalar(0));
 
-    int loopCount = 0;
-    while (temp > 1)
+    /* Get init T0, N0 strictly positive transitions
+     * T0 = -(mean(delta)/ ln(P0)), P0 = 0.95, N0 = 500
+     */
+    const int N0 = 500;
+    const double P0 = 0.95;
+    const double ln_p0 = log(P0);
+    double sum_of_deltas = 0.0;
+    for (int i = 0; i < N0;)
     {
-        loopCount++;
-        // std::cout << loopCount << std::endl;
         Tour newSolution = Tour(currentSolution.getTour());
 
         cv::RNG rng;
@@ -124,10 +127,44 @@ int main(int argc, char *argv[])
         int currentEnergy = currentSolution.getDistance();
         int neighbourEnergy = newSolution.getDistance();
 
-        rng = cv::RNG(cv::getTickCount());
-        if (acceptanceProbability(currentEnergy, neighbourEnergy, temp) > rng.uniform(0.0, 1.0))
+        if (neighbourEnergy > currentEnergy) //strictyly postive transitions
         {
-            currentSolution = Tour(newSolution.getTour());
+            sum_of_deltas += neighbourEnergy - currentEnergy;
+            i++;
+        }
+    }
+
+    double T0 = - ( sum_of_deltas / N0) / ln_p0;
+    std::cout << "Initial temperature: " << T0 << std::endl;
+    temp = T0;
+
+    while (temp > 1)
+    {
+        for (int markovChainLength = 0; markovChainLength < 50; markovChainLength++)
+        {
+            Tour newSolution = Tour(currentSolution.getTour());
+
+            cv::RNG rng;
+            rng = cv::RNG(cv::getTickCount());
+            int tourPos1 = (int)(newSolution.tourSize() * rng.uniform(0.0, 1.0));
+            rng = cv::RNG(cv::getTickCount());
+            int tourPos2 = (int)(newSolution.tourSize() * rng.uniform(0.0, 1.0));
+
+            City citySwap1 = newSolution.getCity(tourPos1);
+            City citySwap2 = newSolution.getCity(tourPos2);
+
+            newSolution.setCity(tourPos2, citySwap1);
+            newSolution.setCity(tourPos1, citySwap2);
+
+            int currentEnergy = currentSolution.getDistance();
+            int neighbourEnergy = newSolution.getDistance();
+
+            rng = cv::RNG(cv::getTickCount());
+            if (acceptanceProbability(currentEnergy, neighbourEnergy, temp) > rng.uniform(0.0, 1.0))
+            {
+                currentSolution = Tour(newSolution.getTour());
+                markovChainLength++;
+            }
         }
 
         if (currentSolution.getDistance() < best.getDistance())
